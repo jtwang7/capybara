@@ -6,9 +6,8 @@ import { AnimatePresence } from "framer-motion";
 import Typewriter from "@/components/typewriter";
 import DrumpIcon from "@/components/drump-icon";
 import EnterButton from "@/components/enter-button";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { STAGE } from "./types";
-import { Input } from "@/components/ui/input";
 import Searcher from "./_components/searcher";
 
 export default function NotePage() {

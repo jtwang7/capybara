@@ -59,4 +59,6 @@ const EnterButton = forwardRef(
   }
 );
 
+EnterButton.displayName = "EnterButton";
+
 export default EnterButton;
