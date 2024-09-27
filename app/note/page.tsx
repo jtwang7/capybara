@@ -83,7 +83,7 @@ export default function NotePage() {
             initial={{ opacity: 0, y: "100vh", position: "absolute" }}
             animate={{ opacity: 1, y: 0, position: "relative" }}
             transition={{ duration: 1, delay: 0.4 }}
-            className="w-9/12 h-5/6 flex flex-col items-center space-y-10"
+            className="w-full h-full p-5 flex flex-col items-center space-y-10"
             onAnimationComplete={() => {
               setAutoFocus(true);
             }}
