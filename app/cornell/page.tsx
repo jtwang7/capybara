@@ -1,6 +1,8 @@
 "use client";
 
-import _ from "lodash";
+import _, { cloneDeep } from "lodash";
+import { usePrevious } from "ahooks";
+import { v4 } from "uuid";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -17,34 +19,36 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import clsx from "clsx";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import TagsSelector from "@/components/tags-selector";
+import { urlParseAction } from "@/actions/url-parse-action";
+import { toast } from "@/hooks/use-toast";
+import Image from "next/image";
 
 interface Note {
   uid: string;
   title: string;
   link: string;
+  iconUrl?: string;
   description?: string;
   tags?: string[];
 }
 
-const formSchema = z
-  .object({
-    title: z.string().min(1),
-    link: z.string().min(1),
-    description: z.string().optional(),
-    tags: z.array(z.string()).optional(),
-  })
-  .required({
-    title: true,
-    link: true,
-  });
+const urlSchema = z.string().url({ message: "Invalid URL" });
+
+const formSchema = z.object({
+  uid: z.string().min(1, { message: "UID is required" }),
+  title: z.string().min(1, { message: "Title is required" }),
+  link: z.string().min(1, { message: "Link is required" }),
+  iconUrl: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+});
 
 // TODO: mock note data
 const mockNotes: Note[] = [
@@ -52,6 +56,7 @@ const mockNotes: Note[] = [
     uid: "0",
     title: "title1",
     link: "link1",
+    iconUrl: "/paperclip.png",
     description: "description1",
     tags: ["tag1", "tag2"],
   },
@@ -59,13 +64,17 @@ const mockNotes: Note[] = [
     uid: "1",
     title: "title2",
     link: "link2",
+    iconUrl: "/paperclip.png",
     description: "description2",
     tags: ["tag3", "tag4"],
   },
 ];
 
 export default function CornellPage({ className }: { className?: string }) {
+  const [webUrl, setWebUrl] = useState("");
+
   const [notes, setNotes] = useState<Note[]>(mockNotes);
+  const previousNotes = usePrevious(notes);
   const [currentNoteIdx, setCurrentNoteIdx] = useState(0);
   const [tagList, setTagList] = useState(() => {
     const list = notes.reduce<Set<string>>((store, note) => {
@@ -83,12 +92,31 @@ export default function CornellPage({ className }: { className?: string }) {
     defaultValues: notes[0],
   });
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    const res = formSchema.safeParse(data);
-    if (!res.success) {
-      console.error(res.error);
-    }
-    console.log(data);
+    setNotes((prev) => {
+      const copy = cloneDeep(prev);
+      const idx = copy.findIndex((note) => note.uid === data.uid);
+      if (!idx) {
+        toast({
+          title: "Save Note Failed",
+          description: `Note with uid ${data.uid} not found`,
+        });
+        return copy;
+      }
+      copy[idx] = data;
+      return copy;
+    });
   };
+
+  useEffect(() => {
+    form.reset({ ...notes[currentNoteIdx] });
+  }, [currentNoteIdx]);
+
+  useEffect(() => {
+    // add one article
+    if (notes.length - (previousNotes?.length ?? 0) === 1) {
+      setCurrentNoteIdx(notes.length - 1);
+    }
+  }, [notes]);
 
   return (
     <div
@@ -105,7 +133,36 @@ export default function CornellPage({ className }: { className?: string }) {
     >
       <Input
         placeholder="Pasting a web page (url) here, e.g. https://www.google.com"
-        className="rounded-none"
+        className="rounded-none focus-visible:ring-0"
+        value={webUrl}
+        onChange={(e) => {
+          setWebUrl(e.target.value);
+        }}
+        onKeyDown={async (e) => {
+          if (e.key === "Enter") {
+            const validateRes = urlSchema.safeParse(webUrl);
+            if (!validateRes.success) {
+              toast({
+                title: validateRes.error.errors[0].message,
+                variant: "destructive",
+              });
+              return;
+            }
+            const { title, iconUrl } = await urlParseAction(webUrl);
+            setNotes((prev) => {
+              const newNote = {
+                uid: v4(),
+                title,
+                link: webUrl,
+                iconUrl,
+                description: "",
+                tags: [],
+              };
+              return [...prev, newNote];
+            });
+            setWebUrl("");
+          }
+        }}
       />
       <ResizablePanelGroup direction="horizontal">
         {/* note introduction cards */}
@@ -123,10 +180,22 @@ export default function CornellPage({ className }: { className?: string }) {
                 )}
                 onClick={() => {
                   setCurrentNoteIdx(idx);
-                  form.reset({ ...note });
                 }}
               >
-                <CardTitle>{note.title}</CardTitle>
+                <CardTitle>
+                  {
+                    <div className="flex space-x-1">
+                      <Image
+                        src={note.iconUrl ?? "/paperclip.png"}
+                        width={20}
+                        height={20}
+                        className="p-1"
+                        alt="website icon"
+                      />
+                      <span className="text-sm">{note.title}</span>
+                    </div>
+                  }
+                </CardTitle>
                 <CardDescription>{note.description}</CardDescription>
               </Card>
             ))}
@@ -141,6 +210,18 @@ export default function CornellPage({ className }: { className?: string }) {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="w-full space-y-2"
               >
+                <FormField
+                  control={form.control}
+                  name="uid"
+                  render={({ field, formState }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold">UID</FormLabel>
+                      <FormControl>
+                        <Input disabled {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="title"
@@ -170,6 +251,23 @@ export default function CornellPage({ className }: { className?: string }) {
                       <FormDescription>
                         <span className="text-red-400">
                           {formState.errors.link?.message}
+                        </span>
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="iconUrl"
+                  render={({ field, formState }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold">Icon Url</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Add note icon-url" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        <span className="text-red-400">
+                          {formState.errors.iconUrl?.message}
                         </span>
                       </FormDescription>
                     </FormItem>
@@ -219,9 +317,23 @@ export default function CornellPage({ className }: { className?: string }) {
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={60}>
-          <div className="flex h-full items-center justify-center p-6">
-            <span className="font-semibold">Three</span>
-          </div>
+          <ResizablePanelGroup direction="vertical">
+            <ResizablePanel defaultSize={75}>
+              <ResizablePanelGroup direction="horizontal">
+                <ResizablePanel defaultSize={70}>
+                  <div>One</div>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={30}>
+                  <div>Two</div>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={25}>
+              <div>Three</div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>

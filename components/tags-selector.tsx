@@ -5,6 +5,7 @@ import { xor } from "lodash";
 import { useControllableValue, useBoolean } from "ahooks";
 import { Input } from "./ui/input";
 import { useEffect, useRef, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TagsSelector(props: {
   defaultTagValue?: string[];
@@ -13,9 +14,10 @@ export default function TagsSelector(props: {
   onChange?: (tags: string[]) => void;
   onSelect?: (tag: string) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
   const { tagList = [], onSelect } = props;
+
+  const { toast } = useToast();
+
   const [availableTagList, setAvailableTagList] = useState(tagList);
   const [tags, setTags] = useControllableValue<string[]>(props, {
     defaultValuePropName: "defaultTagValue",
@@ -25,10 +27,36 @@ export default function TagsSelector(props: {
 
   const [edit, { setTrue: startEdit, setFalse: stopEdit }] = useBoolean(false);
 
+  const inputValue = useRef("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
   const createTag = (value: string) => {
-    setTags((prev) => [...prev, value]);
-    setAvailableTagList((prev) => [...prev, value]);
-    stopEdit();
+    const init = () => {
+      stopEdit();
+      inputValue.current = "";
+    };
+    try {
+      if (!value) {
+        toast({
+          variant: "destructive",
+          title: "Tag cannot be empty",
+          duration: 1500,
+        });
+        return;
+      }
+      if (availableTagList.some((tag) => tag === value)) {
+        toast({
+          variant: "destructive",
+          title: "Tag already exists",
+          duration: 1500,
+        });
+        return;
+      }
+      setTags((prev) => [...prev, value]);
+      setAvailableTagList((prev) => [...prev, value]);
+    } finally {
+      init();
+    }
   };
 
   useEffect(() => {
@@ -54,7 +82,7 @@ export default function TagsSelector(props: {
       ))}
       <Badge
         variant="secondary"
-        className="cursor-pointer  outline-dashed h-5 mr-2 mb-2"
+        className="cursor-pointer outline-dashed h-5 mr-2 mb-2"
         onClick={() => {
           startEdit();
         }}
@@ -64,10 +92,12 @@ export default function TagsSelector(props: {
         ) : (
           <Input
             ref={inputRef}
-            className="border-none bg-transparent h-4 outline-none focus-visible:ring-0 shadow-none px-0"
-            onBlur={(e) => {
-              const newTag = e.target.value;
-              newTag && createTag(newTag);
+            onChange={(e) => {
+              inputValue.current = e.target.value;
+            }}
+            className="border-none bg-transparent h-4 outline-none focus-visible:ring-0 shadow-none px-0 font-normal"
+            onBlur={() => {
+              createTag(inputValue.current);
             }}
           />
         )}
