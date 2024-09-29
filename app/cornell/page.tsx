@@ -1,8 +1,9 @@
 "use client";
 
 import _, { cloneDeep } from "lodash";
-import { usePrevious } from "ahooks";
+import { useBoolean, usePrevious } from "ahooks";
 import short from "short-uuid";
+import { Spin, message } from "antd";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -62,7 +63,9 @@ const mockNotes: Note[] = [
   },
 ];
 
-export default function CornellPage({ className }: { className?: string }) {
+export default function CornellPage() {
+  const [messageApi, contextHolder] = message.useMessage();
+
   const [webUrl, setWebUrl] = useState("");
 
   const [notes, setNotes] = useState<Note[]>(mockNotes);
@@ -74,10 +77,24 @@ export default function CornellPage({ className }: { className?: string }) {
   );
   const gotoNote = (uid: string) => {
     setCurrentNoteUid(uid);
-
     const targetNote = notes.find((note) => note.uid === uid);
     form.reset(targetNote);
   };
+
+  // parse url
+  const [parseLoading, { setTrue: startParse, setFalse: stopParse }] =
+    useBoolean(false);
+  useEffect(() => {
+    if (parseLoading) {
+      messageApi.open({
+        type: "loading",
+        content: "Parsing URL...",
+        duration: 0,
+      });
+    } else {
+      messageApi.destroy();
+    }
+  }, [parseLoading]);
 
   const [tagList, setTagList] = useState(() => {
     const list = notes.reduce<Set<string>>((store, note) => {
@@ -118,223 +135,239 @@ export default function CornellPage({ className }: { className?: string }) {
   }, [notes]);
 
   return (
-    <div
-      className={clsx(
-        "rounded-lg",
-        "w-11/12",
-        "h-5/6",
-        "m-auto",
-        "border-2",
-        "border-gray-300",
-        "overflow-hidden",
-        !!className && className
-      )}
-    >
-      <Input
-        placeholder="Pasting a web page (url) here, e.g. https://www.google.com"
-        className="rounded-none focus-visible:ring-0"
-        value={webUrl}
-        onChange={(e) => {
-          setWebUrl(e.target.value);
-        }}
-        onKeyDown={async (e) => {
-          if (e.key === "Enter") {
-            const validateRes = urlSchema.safeParse(webUrl);
-            if (!validateRes.success) {
-              toast({
-                title: validateRes.error.errors[0].message,
-                variant: "destructive",
-              });
-              return;
-            }
-            const { title, iconUrl } = await urlParseAction(webUrl);
-            setNotes((prev) => {
-              const newNote = {
-                uid: short.generate(),
-                title,
-                link: webUrl,
-                iconUrl,
-                description: "",
-                tags: [],
-              };
-              return [...prev, newNote];
-            });
-            setWebUrl("");
-          }
-        }}
-      />
-      <ResizablePanelGroup direction="horizontal">
-        {/* note introduction cards */}
-        <ResizablePanel defaultSize={20} minSize={20} maxSize={20}>
-          <div className="flex flex-col h-full items-center p-3 space-y-2">
-            {notes.map((note) => (
-              <Card
-                key={note.uid}
-                className={clsx(
-                  "w-full",
-                  "p-2",
-                  "rounded-md",
-                  "cursor-pointer",
-                  currentNoteUid === note.uid && "bg-gray-100"
-                )}
-                onClick={() => {
-                  gotoNote(note.uid);
-                }}
-              >
-                <CardTitle>
-                  {
-                    <div className="flex space-x-1">
-                      <Image
-                        src={note.iconUrl ?? "/paperclip.png"}
-                        width={20}
-                        height={20}
-                        className="p-1"
-                        alt="website icon"
-                      />
-                      <span className="text-sm">{note.title}</span>
-                    </div>
-                  }
-                </CardTitle>
-                <CardDescription>{note.description}</CardDescription>
-              </Card>
-            ))}
-          </div>
-        </ResizablePanel>
-        <ResizableHandle />
-        {/* note detail */}
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
-          <div className="flex flex-col h-full items-center p-3">
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="w-full space-y-2"
-              >
-                <FormField
-                  control={form.control}
-                  name="uid"
-                  render={({ field, formState }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">UID</FormLabel>
-                      <FormControl>
-                        <Input disabled {...field} />
-                      </FormControl>
-                    </FormItem>
+    <>
+      {contextHolder}
+      <div
+        className={clsx(
+          "rounded-lg",
+          "w-11/12",
+          "h-5/6",
+          "m-auto",
+          "border-2",
+          "border-gray-300",
+          "overflow-hidden"
+        )}
+      >
+        <Spin percent="auto" size="small" spinning={parseLoading}>
+          <Input
+            placeholder="Pasting a web page (url) here, e.g. https://www.google.com"
+            className="rounded-none focus-visible:ring-0"
+            value={webUrl}
+            onChange={(e) => {
+              setWebUrl(e.target.value);
+            }}
+            onKeyDown={async (e) => {
+              if (e.key === "Enter") {
+                const validateRes = urlSchema.safeParse(webUrl);
+                if (!validateRes.success) {
+                  toast({
+                    title: validateRes.error.errors[0].message,
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                const uid = short.generate();
+                try {
+                  startParse();
+                  const { title, iconUrl } = await urlParseAction({
+                    url: webUrl,
+                    uid,
+                  });
+                  setNotes((prev) => {
+                    const newNote = {
+                      uid,
+                      title,
+                      link: webUrl,
+                      iconUrl,
+                      description: "",
+                      tags: [],
+                    };
+                    return [...prev, newNote];
+                  });
+                  setWebUrl("");
+                } finally {
+                  stopParse();
+                }
+              }
+            }}
+          />
+        </Spin>
+        <ResizablePanelGroup direction="horizontal">
+          {/* note introduction cards */}
+          <ResizablePanel defaultSize={20} minSize={20} maxSize={20}>
+            <div className="flex flex-col h-full items-center p-3 space-y-2">
+              {notes.map((note) => (
+                <Card
+                  key={note.uid}
+                  className={clsx(
+                    "w-full",
+                    "p-2",
+                    "rounded-md",
+                    "cursor-pointer",
+                    currentNoteUid === note.uid && "bg-gray-100"
                   )}
-                />
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field, formState }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Add note title" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        <span className="text-red-400">
-                          {formState.errors.title?.message}
-                        </span>
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="link"
-                  render={({ field, formState }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">Link</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Add note link" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        <span className="text-red-400">
-                          {formState.errors.link?.message}
-                        </span>
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="iconUrl"
-                  render={({ field, formState }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">Icon Url</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Add note icon-url" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        <span className="text-red-400">
-                          {formState.errors.iconUrl?.message}
-                        </span>
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">
-                        Description
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Add note description"
-                          {...field}
+                  onClick={() => {
+                    gotoNote(note.uid);
+                  }}
+                >
+                  <CardTitle>
+                    {
+                      <div className="flex space-x-1">
+                        <Image
+                          src={note.iconUrl ?? "/paperclip.png"}
+                          width={20}
+                          height={20}
+                          className="p-1"
+                          alt="website icon"
                         />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="tags"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">Tags</FormLabel>
-                      <FormControl>
-                        <TagsSelector
-                          tagList={tagList}
-                          tagValue={field.value}
-                          onChange={(tags) => {
-                            form.setValue("tags", tags);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="h-8">
-                  Save
-                </Button>
-              </form>
-            </Form>
-          </div>
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={60}>
-          <ResizablePanelGroup direction="vertical">
-            <ResizablePanel defaultSize={75}>
-              <ResizablePanelGroup direction="horizontal">
-                <ResizablePanel defaultSize={70}>
-                  <div>One</div>
-                </ResizablePanel>
-                <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={30}>
-                  <div>Two</div>
-                </ResizablePanel>
-              </ResizablePanelGroup>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={25}>
-              <div>Three</div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </ResizablePanel>
-      </ResizablePanelGroup>
-    </div>
+                        <span className="text-sm">{note.title}</span>
+                      </div>
+                    }
+                  </CardTitle>
+                  <CardDescription>{note.description}</CardDescription>
+                </Card>
+              ))}
+            </div>
+          </ResizablePanel>
+          <ResizableHandle />
+          {/* note detail */}
+          <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
+            <div className="flex flex-col h-full items-center p-3">
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="w-full space-y-2"
+                >
+                  <FormField
+                    control={form.control}
+                    name="uid"
+                    render={({ field, formState }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold">UID</FormLabel>
+                        <FormControl>
+                          <Input disabled {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field, formState }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold">Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Add note title" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          <span className="text-red-400">
+                            {formState.errors.title?.message}
+                          </span>
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="link"
+                    render={({ field, formState }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold">Link</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Add note link" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          <span className="text-red-400">
+                            {formState.errors.link?.message}
+                          </span>
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="iconUrl"
+                    render={({ field, formState }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold">
+                          Icon Url
+                        </FormLabel>
+                        <FormControl>
+                          <Input placeholder="Add note icon-url" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          <span className="text-red-400">
+                            {formState.errors.iconUrl?.message}
+                          </span>
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold">
+                          Description
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Add note description"
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold">Tags</FormLabel>
+                        <FormControl>
+                          <TagsSelector
+                            tagList={tagList}
+                            tagValue={field.value}
+                            onChange={(tags) => {
+                              form.setValue("tags", tags);
+                            }}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="h-8">
+                    Save
+                  </Button>
+                </form>
+              </Form>
+            </div>
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={60}>
+            <ResizablePanelGroup direction="vertical">
+              <ResizablePanel defaultSize={75}>
+                <ResizablePanelGroup direction="horizontal">
+                  <ResizablePanel defaultSize={70}>
+                    <div>One</div>
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={30}>
+                    <div>Two</div>
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={25}>
+                <div>Three</div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+        {/* top-level mask for progress */}
+      </div>
+    </>
   );
 }

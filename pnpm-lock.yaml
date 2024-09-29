@@ -26,6 +26,9 @@ dependencies:
   '@radix-ui/react-label':
     specifier: ^2.1.0
     version: 2.1.0(@types/react-dom@18.3.0)(@types/react@18.3.8)(react-dom@18.3.1)(react@18.3.1)
+  '@radix-ui/react-progress':
+    specifier: ^1.1.0
+    version: 1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.8)(react-dom@18.3.1)(react@18.3.1)
   '@radix-ui/react-select':
     specifier: ^2.1.1
     version: 2.1.1(@types/react-dom@18.3.0)(@types/react@18.3.8)(react-dom@18.3.1)(react@18.3.1)
@@ -47,6 +50,9 @@ dependencies:
   class-variance-authority:
     specifier: ^0.7.0
     version: 0.7.0
+  cloudinary:
+    specifier: ^2.5.0
+    version: 2.5.0
   clsx:
     specifier: ^2.1.1
     version: 2.1.1
@@ -946,6 +952,27 @@ packages:
         optional: true
     dependencies:
       '@radix-ui/react-slot': 1.1.0(@types/react@18.3.8)(react@18.3.1)
+      '@types/react': 18.3.8
+      '@types/react-dom': 18.3.0
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    dev: false
+
+  /@radix-ui/react-progress@1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.8)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-aSzvnYpP725CROcxAOEBVZZSIQVQdHgBr2QQFKySsaD14u8dNT0batuXI+AAGDdAHfXH8rbnHmjYFqVJ21KkRg==}
+    peerDependencies:
+      '@types/react': '*'
+      '@types/react-dom': '*'
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+    dependencies:
+      '@radix-ui/react-context': 1.1.0(@types/react@18.3.8)(react@18.3.1)
+      '@radix-ui/react-primitive': 2.0.0(@types/react-dom@18.3.0)(@types/react@18.3.8)(react-dom@18.3.1)(react@18.3.1)
       '@types/react': 18.3.8
       '@types/react-dom': 18.3.0
       react: 18.3.1
@@ -2002,6 +2029,14 @@ packages:
       string-width: 4.2.3
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
+    dev: false
+
+  /cloudinary@2.5.0:
+    resolution: {integrity: sha512-gPkyylFpyBAXiErAnMgZBlpwztHuZoik/OTLQM9oswjlzYHLMtQGoh0oisPBQvVHQxHmBUjcgwsAi393HDedqQ==}
+    engines: {node: '>=9'}
+    dependencies:
+      lodash: 4.17.21
+      q: 1.5.1
     dev: false
 
   /clsx@2.0.0:
@@ -4052,6 +4087,15 @@ packages:
       - supports-color
       - typescript
       - utf-8-validate
+    dev: false
+
+  /q@1.5.1:
+    resolution: {integrity: sha512-kV/CThkXo6xyFEZUugw/+pIOywXcDbFYgSct5cT3gqlbkBE1SJdwy6UQoZvodiWF/ckQLZyDE/Bu1M6gVu5lVw==}
+    engines: {node: '>=0.6.0', teleport: '>=0.2.0'}
+    deprecated: |-
+      You or someone you depend on is using Q, the JavaScript Promise library that gave JavaScript developers strong feelings about promises. They can almost certainly migrate to the native JavaScript promise now. Thank you literally everyone for joining me in this bet against the odds. Be excellent to each other.
+
+      (For a CapTP with native promises, see @endo/eventual-send and @endo/captp)
     dev: false
 
   /queue-microtask@1.2.3:
