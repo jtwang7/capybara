@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { UserProvider } from "@auth0/nextjs-auth0/client";
 import "./globals.css";
 import NavlinkBar from "./_ui/navlink-bar";
@@ -32,9 +33,11 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased w-screen h-screen`}
         >
-          <NavlinkBar />
-          {children}
-          <Toaster />
+          <AntdRegistry>
+            <NavlinkBar />
+            {children}
+            <Toaster />
+          </AntdRegistry>
         </body>
       </UserProvider>
     </html>

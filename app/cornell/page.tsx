@@ -2,7 +2,7 @@
 
 import _, { cloneDeep } from "lodash";
 import { usePrevious } from "ahooks";
-import { v4 } from "uuid";
+import short from "short-uuid";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -29,15 +29,7 @@ import TagsSelector from "@/components/tags-selector";
 import { urlParseAction } from "@/actions/url-parse-action";
 import { toast } from "@/hooks/use-toast";
 import Image from "next/image";
-
-interface Note {
-  uid: string;
-  title: string;
-  link: string;
-  iconUrl?: string;
-  description?: string;
-  tags?: string[];
-}
+import type { Note } from "@/types/cornell";
 
 const urlSchema = z.string().url({ message: "Invalid URL" });
 
@@ -53,7 +45,7 @@ const formSchema = z.object({
 // TODO: mock note data
 const mockNotes: Note[] = [
   {
-    uid: "0",
+    uid: short.generate(),
     title: "title1",
     link: "link1",
     iconUrl: "/paperclip.png",
@@ -61,7 +53,7 @@ const mockNotes: Note[] = [
     tags: ["tag1", "tag2"],
   },
   {
-    uid: "1",
+    uid: short.generate(),
     title: "title2",
     link: "link2",
     iconUrl: "/paperclip.png",
@@ -75,7 +67,18 @@ export default function CornellPage({ className }: { className?: string }) {
 
   const [notes, setNotes] = useState<Note[]>(mockNotes);
   const previousNotes = usePrevious(notes);
-  const [currentNoteIdx, setCurrentNoteIdx] = useState(0);
+
+  // switch note
+  const [currentNoteUid, setCurrentNoteUid] = useState(() =>
+    notes.length ? notes[0].uid : undefined
+  );
+  const gotoNote = (uid: string) => {
+    setCurrentNoteUid(uid);
+
+    const targetNote = notes.find((note) => note.uid === uid);
+    form.reset(targetNote);
+  };
+
   const [tagList, setTagList] = useState(() => {
     const list = notes.reduce<Set<string>>((store, note) => {
       note.tags?.forEach((tag) => {
@@ -108,13 +111,9 @@ export default function CornellPage({ className }: { className?: string }) {
   };
 
   useEffect(() => {
-    form.reset({ ...notes[currentNoteIdx] });
-  }, [currentNoteIdx]);
-
-  useEffect(() => {
     // add one article
     if (notes.length - (previousNotes?.length ?? 0) === 1) {
-      setCurrentNoteIdx(notes.length - 1);
+      gotoNote(notes.at(-1)!.uid!);
     }
   }, [notes]);
 
@@ -151,7 +150,7 @@ export default function CornellPage({ className }: { className?: string }) {
             const { title, iconUrl } = await urlParseAction(webUrl);
             setNotes((prev) => {
               const newNote = {
-                uid: v4(),
+                uid: short.generate(),
                 title,
                 link: webUrl,
                 iconUrl,
@@ -168,7 +167,7 @@ export default function CornellPage({ className }: { className?: string }) {
         {/* note introduction cards */}
         <ResizablePanel defaultSize={20} minSize={20} maxSize={20}>
           <div className="flex flex-col h-full items-center p-3 space-y-2">
-            {notes.map((note, idx) => (
+            {notes.map((note) => (
               <Card
                 key={note.uid}
                 className={clsx(
@@ -176,10 +175,10 @@ export default function CornellPage({ className }: { className?: string }) {
                   "p-2",
                   "rounded-md",
                   "cursor-pointer",
-                  currentNoteIdx === idx && "bg-gray-100"
+                  currentNoteUid === note.uid && "bg-gray-100"
                 )}
                 onClick={() => {
-                  setCurrentNoteIdx(idx);
+                  gotoNote(note.uid);
                 }}
               >
                 <CardTitle>
