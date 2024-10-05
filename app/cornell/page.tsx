@@ -32,9 +32,7 @@ import { toast } from "@/hooks/use-toast";
 import Image from "next/image";
 import type { Note } from "@/types/cornell";
 import type { ImperativePanelHandle } from "react-resizable-panels";
-import MarkdownIt from "markdown-it";
-import MdEditor from "react-markdown-editor-lite";
-import "react-markdown-editor-lite/lib/index.css";
+import CornellNote, { Mode } from "@/components/cornell-note";
 
 const urlSchema = z.string().url({ message: "Invalid URL" });
 
@@ -67,14 +65,6 @@ const mockNotes: Note[] = [
   },
 ];
 
-// TODO: mock cornell note
-const mockCornellPoints = `
-# heading
-
-1. abc
-2. def
-`;
-
 export default function CornellPage() {
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -85,24 +75,16 @@ export default function CornellPage() {
 
   // resizable refs
   const configureRef = useRef<ImperativePanelHandle>(null!);
-  const cornellPointRef = useRef<ImperativePanelHandle>(null!);
-  const cornellSummaryRef = useRef<ImperativePanelHandle>(null!);
 
   /* cornell note */
-  const mdParser = new MarkdownIt();
-  const [cornellPoints, setCornellPoints] = useState(mockCornellPoints);
-  const [cornellSummary, setCornellSummary] = useState("");
+  const [cornellMode, setCornellMode] = useState(Mode.Preview);
   const openCornellMode = () => {
     configureRef.current.isExpanded() && configureRef.current.collapse();
-    cornellPointRef.current.isCollapsed() && cornellPointRef.current.expand();
-    cornellSummaryRef.current.isCollapsed() &&
-      cornellSummaryRef.current.expand();
+    setCornellMode(Mode.Edit);
   };
   const closeCornellMode = () => {
     configureRef.current.isCollapsed() && configureRef.current.expand();
-    cornellPointRef.current.isExpanded() && cornellPointRef.current.collapse();
-    cornellSummaryRef.current.isExpanded() &&
-      cornellSummaryRef.current.collapse();
+    setCornellMode(Mode.Preview);
   };
 
   // switch note
@@ -397,54 +379,9 @@ export default function CornellPage() {
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize={60}>
-            <ResizablePanelGroup direction="vertical">
-              <ResizablePanel defaultSize={75}>
-                <ResizablePanelGroup direction="horizontal">
-                  <ResizablePanel defaultSize={70}>
-                    {/* TODO: note image here! */}
-                    <div>One</div>
-                  </ResizablePanel>
-                  <ResizableHandle withHandle />
-                  <ResizablePanel
-                    ref={cornellPointRef}
-                    collapsible
-                    defaultSize={30}
-                    minSize={30}
-                  >
-                    <MdEditor
-                      renderHTML={(text) => mdParser.render(text)}
-                      view={{ menu: true, md: true, html: false }}
-                      canView={{
-                        menu: true,
-                        md: true,
-                        html: true,
-                        fullScreen: false,
-                        hideMenu: false,
-                        both: false,
-                      }}
-                      className="h-full"
-                    />
-                  </ResizablePanel>
-                </ResizablePanelGroup>
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel
-                ref={cornellSummaryRef}
-                collapsible
-                defaultSize={25}
-              >
-                {/* TODO: note summary here! may add AI */}
-                <MdEditor
-                  readOnly
-                  renderHTML={(text) => mdParser.render(text)}
-                  view={{ menu: false, md: false, html: true }}
-                  className="h-full"
-                />
-              </ResizablePanel>
-            </ResizablePanelGroup>
+            <CornellNote mode={cornellMode} />
           </ResizablePanel>
         </ResizablePanelGroup>
-        {/* top-level mask for progress */}
       </div>
     </>
   );
