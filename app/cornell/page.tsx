@@ -20,7 +20,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import clsx from "clsx";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +31,10 @@ import { urlParseAction } from "@/actions/url-parse-action";
 import { toast } from "@/hooks/use-toast";
 import Image from "next/image";
 import type { Note } from "@/types/cornell";
+import type { ImperativePanelHandle } from "react-resizable-panels";
+import MarkdownIt from "markdown-it";
+import MdEditor from "react-markdown-editor-lite";
+import "react-markdown-editor-lite/lib/index.css";
 
 const urlSchema = z.string().url({ message: "Invalid URL" });
 
@@ -63,6 +67,14 @@ const mockNotes: Note[] = [
   },
 ];
 
+// TODO: mock cornell note
+const mockCornellPoints = `
+# heading
+
+1. abc
+2. def
+`;
+
 export default function CornellPage() {
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -70,6 +82,28 @@ export default function CornellPage() {
 
   const [notes, setNotes] = useState<Note[]>(mockNotes);
   const previousNotes = usePrevious(notes);
+
+  // resizable refs
+  const configureRef = useRef<ImperativePanelHandle>(null!);
+  const cornellPointRef = useRef<ImperativePanelHandle>(null!);
+  const cornellSummaryRef = useRef<ImperativePanelHandle>(null!);
+
+  /* cornell note */
+  const mdParser = new MarkdownIt();
+  const [cornellPoints, setCornellPoints] = useState(mockCornellPoints);
+  const [cornellSummary, setCornellSummary] = useState("");
+  const openCornellMode = () => {
+    configureRef.current.isExpanded() && configureRef.current.collapse();
+    cornellPointRef.current.isCollapsed() && cornellPointRef.current.expand();
+    cornellSummaryRef.current.isCollapsed() &&
+      cornellSummaryRef.current.expand();
+  };
+  const closeCornellMode = () => {
+    configureRef.current.isCollapsed() && configureRef.current.expand();
+    cornellPointRef.current.isExpanded() && cornellPointRef.current.collapse();
+    cornellSummaryRef.current.isExpanded() &&
+      cornellSummaryRef.current.collapse();
+  };
 
   // switch note
   const [currentNoteUid, setCurrentNoteUid] = useState(() =>
@@ -79,6 +113,7 @@ export default function CornellPage() {
     setCurrentNoteUid(uid);
     const targetNote = notes.find((note) => note.uid === uid);
     form.reset(targetNote);
+    closeCornellMode();
   };
 
   // parse url
@@ -231,7 +266,13 @@ export default function CornellPage() {
           </ResizablePanel>
           <ResizableHandle />
           {/* note detail */}
-          <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
+          <ResizablePanel
+            ref={configureRef}
+            collapsible
+            defaultSize={20}
+            minSize={20}
+            maxSize={25}
+          >
             <div className="flex flex-col h-full items-center p-3">
               <Form {...form}>
                 <form
@@ -338,9 +379,18 @@ export default function CornellPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="h-8">
-                    Save
-                  </Button>
+                  <div className="space-x-2">
+                    <Button type="submit" className="h-7 font-bold">
+                      Save
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-7 font-bold"
+                      onClick={openCornellMode}
+                    >
+                      Cornell Mode
+                    </Button>
+                  </div>
                 </form>
               </Form>
             </div>
@@ -351,17 +401,45 @@ export default function CornellPage() {
               <ResizablePanel defaultSize={75}>
                 <ResizablePanelGroup direction="horizontal">
                   <ResizablePanel defaultSize={70}>
+                    {/* TODO: note image here! */}
                     <div>One</div>
                   </ResizablePanel>
                   <ResizableHandle withHandle />
-                  <ResizablePanel defaultSize={30}>
-                    <div>Two</div>
+                  <ResizablePanel
+                    ref={cornellPointRef}
+                    collapsible
+                    defaultSize={30}
+                    minSize={30}
+                  >
+                    <MdEditor
+                      renderHTML={(text) => mdParser.render(text)}
+                      view={{ menu: true, md: true, html: false }}
+                      canView={{
+                        menu: true,
+                        md: true,
+                        html: true,
+                        fullScreen: false,
+                        hideMenu: false,
+                        both: false,
+                      }}
+                      className="h-full"
+                    />
                   </ResizablePanel>
                 </ResizablePanelGroup>
               </ResizablePanel>
               <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={25}>
-                <div>Three</div>
+              <ResizablePanel
+                ref={cornellSummaryRef}
+                collapsible
+                defaultSize={25}
+              >
+                {/* TODO: note summary here! may add AI */}
+                <MdEditor
+                  readOnly
+                  renderHTML={(text) => mdParser.render(text)}
+                  view={{ menu: false, md: false, html: true }}
+                  className="h-full"
+                />
               </ResizablePanel>
             </ResizablePanelGroup>
           </ResizablePanel>
