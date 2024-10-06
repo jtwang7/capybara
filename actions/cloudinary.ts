@@ -22,7 +22,7 @@ export async function transformImageUrl({
     const publicIdWithVersion = urlParts.at(-1)!;
     publicId = publicIdWithVersion.split(".")[0];
   }
-  return cloudinary.url(`cornell/${publicId}`!, {
+  return cloudinary.url(`cornell/${publicId}`, {
     width,
     crop: "limit",
     fetch_format: "auto",
