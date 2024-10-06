@@ -3,7 +3,7 @@
 import _, { cloneDeep } from "lodash";
 import { useBoolean, usePrevious } from "ahooks";
 import short from "short-uuid";
-import { Spin, message } from "antd";
+import { Empty, Spin, message } from "antd";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -20,7 +20,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import clsx from "clsx";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,6 +33,7 @@ import Image from "next/image";
 import type { Note } from "@/types/cornell";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import CornellNote, { Mode } from "@/components/cornell-note";
+import { getNotes, insertNote, updateNote } from "@/actions/cornell-action";
 
 const urlSchema = z.string().url({ message: "Invalid URL" });
 
@@ -40,62 +41,74 @@ const formSchema = z.object({
   uid: z.string().min(1, { message: "UID is required" }),
   title: z.string().min(1, { message: "Title is required" }),
   link: z.string().min(1, { message: "Link is required" }),
-  iconUrl: z.string(),
+  icon_url: z.string(),
   description: z.string(),
   tags: z.array(z.string()),
 });
 
-// TODO: mock note data
-const mockNotes: Note[] = [
-  {
-    uid: short.generate(),
-    title: "title1",
-    link: "link1",
-    iconUrl: "/paperclip.png",
-    description: "description1",
-    tags: ["tag1", "tag2"],
-  },
-  {
-    uid: short.generate(),
-    title: "title2",
-    link: "link2",
-    iconUrl: "/paperclip.png",
-    description: "description2",
-    tags: ["tag3", "tag4"],
-  },
-];
-
 export default function CornellPage() {
   const [messageApi, contextHolder] = message.useMessage();
-
-  const [webUrl, setWebUrl] = useState("");
-
-  const [notes, setNotes] = useState<Note[]>(mockNotes);
-  const previousNotes = usePrevious(notes);
-
-  // resizable refs
   const configureRef = useRef<ImperativePanelHandle>(null!);
-
-  /* cornell note */
+  const [webUrl, setWebUrl] = useState("");
+  const [notes, setNotes] = useState<Note[]>([]);
+  const previousNotes = usePrevious(notes);
+  const [currentNoteUid, setCurrentNoteUid] = useState<string>();
+  const currentNote = useMemo(
+    () => notes.find((note) => note.uid === currentNoteUid),
+    [notes, currentNoteUid]
+  );
   const [cornellMode, setCornellMode] = useState(Mode.Preview);
-  const openCornellMode = () => {
-    configureRef.current.isExpanded() && configureRef.current.collapse();
-    setCornellMode(Mode.Edit);
-  };
-  const closeCornellMode = () => {
-    configureRef.current.isCollapsed() && configureRef.current.expand();
-    setCornellMode(Mode.Preview);
-  };
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema), // resolver will validate formdata before submit
+    defaultValues: notes[0],
+  });
+  const tagList = useMemo(() => {
+    const list = notes.reduce<Set<string>>((store, note) => {
+      note.tags?.forEach((tag) => {
+        store.add(tag);
+      });
+      return store;
+    }, new Set<string>());
+    return Array.from(list);
+  }, [notes]);
 
   // switch note
-  const [currentNoteUid, setCurrentNoteUid] = useState(() =>
-    notes.length ? notes[0].uid : undefined
-  );
   const gotoNote = (uid: string) => {
     setCurrentNoteUid(uid);
     const targetNote = notes.find((note) => note.uid === uid);
     form.reset(targetNote);
-    closeCornellMode();
+    configureRef.current.expand(20);
+    setCornellMode(Mode.Preview);
+  };
+
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    const _note = notes.find((note) => note.uid === data.uid);
+    let newNote = cloneDeep(_note);
+    if (!newNote) {
+      toast({
+        title: "Save Note Failed",
+        description: `Note with uid ${data.uid} not found`,
+      });
+      return;
+    }
+    newNote = {
+      ...newNote,
+      ...data,
+    };
+
+    const success = await updateNote(newNote);
+    if (success) {
+      message.success("Note saved successfully");
+    } else {
+      message.error("Note save failed");
+      return;
+    }
+    setNotes((prev) => {
+      const copy = cloneDeep(prev);
+      const idx = copy.findIndex((note) => note.uid === data.uid);
+      copy[idx] = newNote!;
+      return copy;
+    });
   };
 
   // parse url
@@ -113,41 +126,28 @@ export default function CornellPage() {
     }
   }, [parseLoading]);
 
-  const [tagList, setTagList] = useState(() => {
-    const list = notes.reduce<Set<string>>((store, note) => {
-      note.tags?.forEach((tag) => {
-        store.add(tag);
+  useEffect(() => {
+    async function fetchData() {
+      const list = await getNotes({});
+      const notes = list.map((note) => {
+        Reflect.set(note, "tags", Reflect.get(note, "tags")?.split(",") ?? []);
+        return note as Note;
       });
-      return store;
-    }, new Set<string>());
-    return Array.from(list);
-  });
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    // resolver will validate formdata before submit
-    resolver: zodResolver(formSchema),
-    defaultValues: notes[0],
-  });
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    setNotes((prev) => {
-      const copy = cloneDeep(prev);
-      const idx = copy.findIndex((note) => note.uid === data.uid);
-      if (!idx) {
-        toast({
-          title: "Save Note Failed",
-          description: `Note with uid ${data.uid} not found`,
-        });
-        return copy;
-      }
-      copy[idx] = data;
-      return copy;
-    });
-  };
+      setNotes(notes);
+    }
+    fetchData();
+  }, []);
 
   useEffect(() => {
+    // first render
+    if (previousNotes?.length === 0 && notes.length) {
+      gotoNote(notes[0].uid!);
+      return;
+    }
     // add one article
     if (notes.length - (previousNotes?.length ?? 0) === 1) {
       gotoNote(notes.at(-1)!.uid!);
+      return;
     }
   }, [notes]);
 
@@ -186,21 +186,29 @@ export default function CornellPage() {
                 const uid = short.generate();
                 try {
                   startParse();
-                  const { title, iconUrl } = await urlParseAction({
+                  const {
+                    title,
+                    iconUrl: icon_url,
+                    screenshot,
+                  } = await urlParseAction({
                     url: webUrl,
                     uid,
+                    screenWidth: window.screen.width,
+                    screenHeight: window.screen.height,
                   });
-                  setNotes((prev) => {
-                    const newNote = {
-                      uid,
-                      title,
-                      link: webUrl,
-                      iconUrl,
-                      description: "",
-                      tags: [],
-                    };
-                    return [...prev, newNote];
-                  });
+                  const newNote: Note = {
+                    uid,
+                    title,
+                    link: webUrl,
+                    icon_url,
+                    description: "",
+                    tags: [],
+                    screenshot,
+                    point: "",
+                    summary: "",
+                  };
+                  await insertNote(newNote);
+                  setNotes((prev) => [...prev, newNote]);
                   setWebUrl("");
                 } finally {
                   stopParse();
@@ -212,39 +220,48 @@ export default function CornellPage() {
         <ResizablePanelGroup direction="horizontal">
           {/* note introduction cards */}
           <ResizablePanel defaultSize={20} minSize={20} maxSize={20}>
-            <div className="flex flex-col h-full items-center p-3 space-y-2">
-              {notes.map((note) => (
-                <Card
-                  key={note.uid}
-                  className={clsx(
-                    "w-full",
-                    "p-2",
-                    "rounded-md",
-                    "cursor-pointer",
-                    currentNoteUid === note.uid && "bg-gray-100"
-                  )}
-                  onClick={() => {
-                    gotoNote(note.uid);
-                  }}
-                >
-                  <CardTitle>
-                    {
-                      <div className="flex space-x-1">
-                        <Image
-                          src={note.iconUrl ?? "/paperclip.png"}
-                          width={20}
-                          height={20}
-                          className="p-1"
-                          alt="website icon"
-                        />
-                        <span className="text-sm">{note.title}</span>
-                      </div>
-                    }
-                  </CardTitle>
-                  <CardDescription>{note.description}</CardDescription>
-                </Card>
-              ))}
-            </div>
+            {notes.length ? (
+              <div className="flex flex-col h-full items-center p-3 space-y-2">
+                {notes.map((note) => (
+                  <Card
+                    key={note.uid}
+                    className={clsx(
+                      "w-full",
+                      "p-2",
+                      "rounded-md",
+                      "cursor-pointer",
+                      currentNoteUid === note.uid && "bg-gray-100"
+                    )}
+                    onClick={() => {
+                      gotoNote(note.uid);
+                    }}
+                  >
+                    <CardTitle>
+                      {
+                        <div className="flex space-x-1">
+                          <Image
+                            src={note.icon_url ?? "/paperclip.png"}
+                            width={20}
+                            height={20}
+                            className="p-1"
+                            alt="website icon"
+                          />
+                          <span className="text-sm">{note.title}</span>
+                        </div>
+                      }
+                    </CardTitle>
+                    <CardDescription>{note.description}</CardDescription>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Empty
+                image="https://gw.alipayobjects.com/zos/antfincdn/ZHrcdLPrvN/empty.svg"
+                imageStyle={{ height: 60 }}
+                description="Paste a web page (url) to add a note"
+                className="flex flex-col justify-center items-center h-full"
+              />
+            )}
           </ResizablePanel>
           <ResizableHandle />
           {/* note detail */}
@@ -252,7 +269,7 @@ export default function CornellPage() {
             ref={configureRef}
             collapsible
             defaultSize={20}
-            minSize={20}
+            minSize={15}
             maxSize={25}
           >
             <div className="flex flex-col h-full items-center p-3">
@@ -264,7 +281,7 @@ export default function CornellPage() {
                   <FormField
                     control={form.control}
                     name="uid"
-                    render={({ field, formState }) => (
+                    render={({ field }) => (
                       <FormItem>
                         <FormLabel className="font-semibold">UID</FormLabel>
                         <FormControl>
@@ -309,7 +326,7 @@ export default function CornellPage() {
                   />
                   <FormField
                     control={form.control}
-                    name="iconUrl"
+                    name="icon_url"
                     render={({ field, formState }) => (
                       <FormItem>
                         <FormLabel className="font-semibold">
@@ -320,7 +337,7 @@ export default function CornellPage() {
                         </FormControl>
                         <FormDescription>
                           <span className="text-red-400">
-                            {formState.errors.iconUrl?.message}
+                            {formState.errors.icon_url?.message}
                           </span>
                         </FormDescription>
                       </FormItem>
@@ -368,7 +385,10 @@ export default function CornellPage() {
                     <Button
                       variant="outline"
                       className="h-7 font-bold"
-                      onClick={openCornellMode}
+                      onClick={() => {
+                        configureRef.current.collapse();
+                        setCornellMode(Mode.Edit);
+                      }}
                     >
                       Cornell Mode
                     </Button>
@@ -379,7 +399,12 @@ export default function CornellPage() {
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize={60}>
-            <CornellNote mode={cornellMode} />
+            <CornellNote
+              mode={cornellMode}
+              screenshot={currentNote?.screenshot}
+              defaultPoint=""
+              defaultSummary=""
+            />
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

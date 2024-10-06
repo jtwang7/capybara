@@ -10,15 +10,23 @@ import { useToast } from "@/hooks/use-toast";
 export default function TagsSelector(props: {
   defaultTagValue?: string[];
   tagValue?: string[];
-  tagList?: string[];
   onChange?: (tags: string[]) => void;
+  defaultTagList?: string[];
+  tagList?: string[];
+  onTagListChange?: (tags: string[]) => void;
   onSelect?: (tag: string) => void;
 }) {
-  const { tagList = [], onSelect } = props;
+  const { onSelect } = props;
 
   const { toast } = useToast();
 
-  const [availableTagList, setAvailableTagList] = useState(tagList);
+  const [availableTagList, setAvailableTagList] = useControllableValue<
+    string[]
+  >(props, {
+    defaultValuePropName: "defaultTagList",
+    valuePropName: "tagList",
+    trigger: "onTagListChange",
+  });
   const [tags, setTags] = useControllableValue<string[]>(props, {
     defaultValuePropName: "defaultTagValue",
     valuePropName: "tagValue",

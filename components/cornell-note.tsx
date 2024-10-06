@@ -8,11 +8,12 @@ import {
 import MdEditor from "react-markdown-editor-lite";
 import "react-markdown-editor-lite/lib/index.css";
 import MarkdownIt from "markdown-it";
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ImperativePanelHandle } from "react-resizable-panels";
 import Image from "next/image";
 import { Empty } from "antd";
 import { useControllableValue } from "ahooks";
+import { transformImageUrl } from "@/actions/cloudinary";
 
 export enum Mode {
   Edit = "edit",
@@ -37,13 +38,15 @@ export default function CornellNote(props: {
   const mdParser = new MarkdownIt();
   const cornellPointRef = useRef<ImperativePanelHandle>(null!);
   const cornellSummaryRef = useRef<ImperativePanelHandle>(null!);
-
+  const imageContainerRef = useRef<HTMLDivElement>(null!);
+  const imageContainerSize = useRef({ width: 0, height: 0 });
+  const resizeTimer = useRef<NodeJS.Timeout>();
+  const [imageUrl, setImageUrl] = useState<string>();
   const [notePoint, setNotePoint] = useControllableValue(props, {
     defaultValuePropName: "defaultPoint",
     valuePropName: "point",
     trigger: "onPointChange",
   });
-
   const [noteSummary, setNoteSummary] = useControllableValue(props, {
     defaultValuePropName: "defaultSummary",
     valuePropName: "summary",
@@ -63,22 +66,63 @@ export default function CornellNote(props: {
     }
   }, [mode]);
 
+  useEffect(() => {
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        if (entry.target === imageContainerRef.current) {
+          clearTimeout(resizeTimer.current);
+          const { width, height } = entry.contentRect;
+          imageContainerSize.current.width = width;
+          imageContainerSize.current.height = height;
+          resizeTimer.current = setTimeout(() => {
+            // transform cloudinary image size
+            if (screenshot) {
+              transformImageUrl({ secureUrl: screenshot, width }).then(
+                (url) => {
+                  console.log(url);
+                  setImageUrl(url);
+                }
+              );
+            }
+          }, 500);
+        }
+      }
+    });
+    if (imageContainerRef.current) {
+      resizeObserver.observe(imageContainerRef.current);
+    }
+
+    return () => {
+      if (imageContainerRef.current) {
+        resizeObserver.unobserve(imageContainerRef.current);
+      }
+    };
+  }, [screenshot]);
+
   return (
     <ResizablePanelGroup direction="vertical">
       <ResizablePanel defaultSize={75}>
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={70}>
-            {/* note screenshot here! */}
-            {screenshot ? (
-              <Image src={screenshot} alt="404 not found" />
-            ) : (
-              <Empty
-                image="https://gw.alipayobjects.com/zos/antfincdn/ZHrcdLPrvN/empty.svg"
-                imageStyle={{ height: 120 }}
-                description="No screenshot"
-                className="w-full h-full flex justify-center items-center flex-col"
-              />
-            )}
+            <div className="w-full h-full" ref={imageContainerRef}>
+              {imageUrl ? (
+                <div className="w-full h-lvh relative overflow-auto">
+                  <Image
+                    src={imageUrl}
+                    alt="404 not found"
+                    width={imageContainerSize.current.width}
+                    height={9999999}
+                  />
+                </div>
+              ) : (
+                <Empty
+                  image="https://gw.alipayobjects.com/zos/antfincdn/ZHrcdLPrvN/empty.svg"
+                  imageStyle={{ height: 120 }}
+                  description="No screenshot"
+                  className="w-full h-full flex justify-center items-center flex-col"
+                />
+              )}
+            </div>
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel

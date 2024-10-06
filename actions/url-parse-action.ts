@@ -6,12 +6,20 @@ import puppeteer from "puppeteer";
 export async function urlParseAction({
   url,
   uid,
+  screenWidth = 1920,
+  screenHeight = 1080,
 }: {
   url: string;
   uid: string;
+  screenWidth?: number;
+  screenHeight?: number;
 }) {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
+  await page.setViewport({
+    width: screenWidth,
+    height: screenHeight,
+  });
   await page.goto(url, {
     waitUntil: "networkidle0", // wait until the network is idle (page fully loaded)
   });
