@@ -1,6 +1,6 @@
 "use client";
 
-import _, { cloneDeep } from "lodash";
+import { cloneDeep } from "lodash";
 import { useBoolean, usePrevious } from "ahooks";
 import short from "short-uuid";
 import { Empty, Spin, message } from "antd";

@@ -4,7 +4,7 @@ import { Badge } from "./ui/badge";
 import { xor } from "lodash";
 import { useControllableValue, useBoolean } from "ahooks";
 import { Input } from "./ui/input";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function TagsSelector(props: {

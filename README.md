@@ -1,7 +1,5 @@
 # Capybara Project
 
-- theme style: simple
-
 ## Getting Started
 
 Running the development server, you can try the following command:
@@ -14,6 +12,18 @@ pnpm dev
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ## Todo List
+
+### Features
+
+- [ ] 笔记删除功能
+- [ ] 笔记访问权限
+- [ ] summary & point
+- [ ] 笔记检索功能
+
+### Bugs
+
+- [ ] 新增笔记时，截屏没有自动切换
+- [ ] 切换笔记时，截屏没有过渡效果，直接从上一份笔记截屏切换到当前笔记截屏
 
 ## Basic Info
 

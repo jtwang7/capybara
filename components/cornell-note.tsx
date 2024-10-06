@@ -68,7 +68,7 @@ export default function CornellNote(props: {
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver((entries) => {
-      for (let entry of entries) {
+      for (const entry of entries) {
         if (entry.target === imageContainerRef.current) {
           clearTimeout(resizeTimer.current);
           const { width, height } = entry.contentRect;
