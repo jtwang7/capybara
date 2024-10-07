@@ -1,6 +1,6 @@
 "use server";
 
-import { v2 as cloudinary } from "cloudinary";
+import { cloudinary } from "@/lib/cloudinary";
 
 // transform image to fill parent container (full width & keep aspect ratio)
 export async function transformImageUrl({
@@ -22,12 +22,6 @@ export async function transformImageUrl({
     const publicIdWithVersion = urlParts.at(-1)!;
     publicId = publicIdWithVersion.split(".")[0];
   }
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-    secure: true,
-  });
   const url = cloudinary.url(`cornell/${publicId}`, {
     width,
     crop: "limit",
