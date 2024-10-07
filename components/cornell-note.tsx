@@ -77,11 +77,11 @@ export default function CornellNote(props: {
           resizeTimer.current = setTimeout(() => {
             // transform cloudinary image size
             if (screenshot) {
-              // transformImageUrl({ secureUrl: screenshot, width }).then(
-              //   (url) => {
-              //     setImageUrl(url);
-              //   }
-              // );
+              transformImageUrl({ secureUrl: screenshot, width }).then(
+                (url) => {
+                  setImageUrl(url);
+                }
+              );
             }
           }, 500);
         }
