@@ -13,7 +13,7 @@ import { ImperativePanelHandle } from "react-resizable-panels";
 import Image from "next/image";
 import { Empty } from "antd";
 import { useControllableValue } from "ahooks";
-import { transformImageUrl } from "@/actions/cloudinary";
+// import { transformImageUrl } from "@/actions/cloudinary";
 
 export enum Mode {
   Edit = "edit",
@@ -41,7 +41,7 @@ export default function CornellNote(props: {
   const imageContainerRef = useRef<HTMLDivElement>(null!);
   const imageContainerSize = useRef({ width: 0, height: 0 });
   const resizeTimer = useRef<NodeJS.Timeout>();
-  const [imageUrl, setImageUrl] = useState<string>();
+  const [imageUrl, _setImageUrl] = useState<string>();
   const [notePoint, setNotePoint] = useControllableValue(props, {
     defaultValuePropName: "defaultPoint",
     valuePropName: "point",
