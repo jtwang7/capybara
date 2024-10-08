@@ -1,5 +1,6 @@
 "use server";
 
+import { cloudinary } from "@/lib/cloudinary";
 import { isTableExist } from "@/lib/database";
 import { Note } from "@/types/cornell";
 import { sql } from "@vercel/postgres";
@@ -68,6 +69,10 @@ export async function deleteNote(uid: string) {
     await sql`
     DELETE FROM cornell WHERE uid = ${uid};
     `;
+    await cloudinary.uploader.destroy(`cornell/${uid}`, {
+      resource_type: "image",
+      type: "upload",
+    });
     return true;
   } catch (error) {
     console.error(`Error deleting note: ${error}`);

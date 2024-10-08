@@ -12,8 +12,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ImperativePanelHandle } from "react-resizable-panels";
 import Image from "next/image";
 import { Empty } from "antd";
-import { useControllableValue } from "ahooks";
+import { useBoolean, useControllableValue } from "ahooks";
 import { transformImageUrl } from "@/actions/cloudinary";
+import LottieIcon from "./lottie-icon";
 
 export enum Mode {
   Edit = "edit",
@@ -52,6 +53,10 @@ export default function CornellNote(props: {
     valuePropName: "summary",
     trigger: "onSummaryChange",
   });
+  const [
+    imageLoading,
+    { setTrue: startImageLoading, setFalse: stopImageLoading },
+  ] = useBoolean(false);
 
   useLayoutEffect(() => {
     switch (mode) {
@@ -67,6 +72,7 @@ export default function CornellNote(props: {
   }, [mode]);
 
   useEffect(() => {
+    startImageLoading();
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (entry.target === imageContainerRef.current) {
@@ -77,11 +83,13 @@ export default function CornellNote(props: {
           resizeTimer.current = setTimeout(() => {
             // transform cloudinary image size
             if (screenshot) {
-              transformImageUrl({ secureUrl: screenshot, width }).then(
-                (url) => {
+              transformImageUrl({ secureUrl: screenshot, width })
+                .then((url) => {
                   setImageUrl(url);
-                }
-              );
+                })
+                .finally(() => {
+                  stopImageLoading();
+                });
             }
           }, 500);
         }
@@ -104,23 +112,11 @@ export default function CornellNote(props: {
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={70}>
             <div className="w-full h-full" ref={imageContainerRef}>
-              {imageUrl ? (
-                <div className="w-full h-lvh relative overflow-auto">
-                  <Image
-                    src={imageUrl}
-                    alt="404 not found"
-                    width={imageContainerSize.current.width}
-                    height={9999999}
-                  />
-                </div>
-              ) : (
-                <Empty
-                  image="https://gw.alipayobjects.com/zos/antfincdn/ZHrcdLPrvN/empty.svg"
-                  imageStyle={{ height: 120 }}
-                  description="No screenshot"
-                  className="w-full h-full flex justify-center items-center flex-col"
-                />
-              )}
+              <ImageContainer
+                src={imageUrl}
+                width={imageContainerSize.current.width}
+                loading={imageLoading}
+              />
             </div>
           </ResizablePanel>
           <ResizableHandle withHandle />
@@ -163,5 +159,43 @@ export default function CornellNote(props: {
         />
       </ResizablePanel>
     </ResizablePanelGroup>
+  );
+}
+
+function ImageContainer({
+  width,
+  src,
+  loading = false,
+}: {
+  width: number;
+  src?: string;
+  loading?: boolean;
+}) {
+  if (!src) {
+    return (
+      <Empty
+        image="https://gw.alipayobjects.com/zos/antfincdn/ZHrcdLPrvN/empty.svg"
+        imageStyle={{ height: 120 }}
+        description="No screenshot"
+        className="w-full h-full flex justify-center items-center flex-col"
+      />
+    );
+  }
+  if (loading) {
+    return (
+      <div className="w-full h-full flex flex-col justify-center items-center">
+        <LottieIcon
+          lottieJsonPath="/data-search.json"
+          width={width / 3}
+          height={width / 3}
+        />
+        <span>Image Loading...</span>
+      </div>
+    );
+  }
+  return (
+    <div className="w-full h-lvh relative overflow-auto">
+      <Image src={src} alt="404 not found" width={width} height={9999999} />
+    </div>
   );
 }
