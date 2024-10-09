@@ -21,6 +21,7 @@ import CornellNote, { Mode } from "@/components/cornell-note";
 import { getNotes, insertNote } from "@/actions/cornell-action";
 import NoteList from "./_ui/note-list";
 import NoteDetail from "./_ui/note-detail";
+import LottieIcon from "@/components/lottie-icon";
 
 const urlSchema = z.string().url({ message: "Invalid URL" });
 
@@ -174,19 +175,33 @@ export default function CornellPage() {
               notes={notes}
               setNotes={setNotes}
               ref={formRef}
-              onDelete={(uid) => {
+              onDelete={() => {
                 fetchNotes();
+              }}
+              onFocus={() => {
+                configureRef.current.collapse();
+                setCornellMode(Mode.Edit);
               }}
             />
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize={60}>
-            <CornellNote
-              mode={cornellMode}
-              screenshot={currentNote?.screenshot}
-              defaultPoint=""
-              defaultSummary=""
-            />
+            {currentNote ? (
+              <CornellNote
+                note={currentNote}
+                mode={cornellMode}
+                defaultPoint={currentNote?.point}
+                defaultSummary={currentNote?.summary}
+              />
+            ) : (
+              <div className="w-full h-full flex justify-center items-center">
+                <LottieIcon
+                  lottieJsonPath="/data-search.json"
+                  width={200}
+                  height={200}
+                />
+              </div>
+            )}
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

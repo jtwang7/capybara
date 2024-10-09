@@ -11,10 +11,13 @@ import MarkdownIt from "markdown-it";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ImperativePanelHandle } from "react-resizable-panels";
 import Image from "next/image";
-import { Empty } from "antd";
+import { message } from "antd";
 import { useBoolean, useControllableValue } from "ahooks";
 import { transformImageUrl } from "@/actions/cloudinary";
 import LottieIcon from "./lottie-icon";
+import { updateNote } from "@/actions/cornell-action";
+import { Note } from "@/types/cornell";
+import { useEvent } from "@/hooks/use-event";
 
 export enum Mode {
   Edit = "edit",
@@ -22,6 +25,8 @@ export enum Mode {
 }
 
 export default function CornellNote(props: {
+  note: Note;
+  mode?: Mode;
   /* note point controller */
   defaultPoint?: string;
   point?: string;
@@ -30,11 +35,9 @@ export default function CornellNote(props: {
   defaultSummary?: string;
   summary?: string;
   onSummaryChange?: (summary: string) => void;
-  /* other */
-  screenshot?: string;
-  mode?: Mode;
 }) {
-  const { screenshot, mode = Mode.Edit } = props;
+  const { note, mode = Mode.Edit } = props;
+  const screenshot = note?.screenshot;
 
   const mdParser = new MarkdownIt();
   const cornellPointRef = useRef<ImperativePanelHandle>(null!);
@@ -43,6 +46,9 @@ export default function CornellNote(props: {
   const imageContainerSize = useRef({ width: 0, height: 0 });
   const resizeTimer = useRef<NodeJS.Timeout>();
   const [imageUrl, setImageUrl] = useState<string>();
+  const [pointFocused, { setTrue: focusPoint, setFalse: blurPoint }] =
+    useBoolean(false);
+  // defaultValue 不生效，原因是当前场景 fetch data 时，首次 defaultValue 赋值始终为 undefined
   const [notePoint, setNotePoint] = useControllableValue(props, {
     defaultValuePropName: "defaultPoint",
     valuePropName: "point",
@@ -57,6 +63,25 @@ export default function CornellNote(props: {
     imageLoading,
     { setTrue: startImageLoading, setFalse: stopImageLoading },
   ] = useBoolean(false);
+
+  // 添加全局监听函数监听 command + s
+  const handler = useEvent(async (event: unknown) => {
+    const e = event as KeyboardEvent;
+    if (e.metaKey && e.key === "s" && pointFocused && note) {
+      e.preventDefault();
+      const success = await updateNote({ ...note, point: notePoint });
+      !success
+        ? message.error("Save note points failed")
+        : message.success("Save note points success");
+    }
+  });
+
+  useEffect(() => {
+    document.addEventListener("keydown", handler);
+    return () => {
+      document.removeEventListener("keydown", handler);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     switch (mode) {
@@ -115,6 +140,7 @@ export default function CornellNote(props: {
               <ImageContainer
                 src={imageUrl}
                 width={imageContainerSize.current.width}
+                height={imageContainerSize.current.height}
                 loading={imageLoading}
               />
             </div>
@@ -128,6 +154,8 @@ export default function CornellNote(props: {
           >
             <MdEditor
               value={notePoint}
+              onFocus={focusPoint}
+              onBlur={blurPoint}
               onChange={({ text }) => setNotePoint(text)}
               renderHTML={(text) => mdParser.render(text)}
               view={{ menu: true, md: true, html: false }}
@@ -164,21 +192,25 @@ export default function CornellNote(props: {
 
 function ImageContainer({
   width,
+  height,
   src,
   loading = false,
 }: {
   width: number;
+  height: number;
   src?: string;
   loading?: boolean;
 }) {
   if (!src) {
     return (
-      <Empty
-        image="https://gw.alipayobjects.com/zos/antfincdn/ZHrcdLPrvN/empty.svg"
-        imageStyle={{ height: 120 }}
-        description="No screenshot"
-        className="w-full h-full flex justify-center items-center flex-col"
-      />
+      <div className="w-full h-full flex flex-col justify-center items-center">
+        <LottieIcon
+          lottieJsonPath="/data-search.json"
+          width={width / 4}
+          height={height / 4}
+        />
+        <span>No Screenshot</span>
+      </div>
     );
   }
   if (loading) {
@@ -186,15 +218,15 @@ function ImageContainer({
       <div className="w-full h-full flex flex-col justify-center items-center">
         <LottieIcon
           lottieJsonPath="/data-search.json"
-          width={width / 3}
-          height={width / 3}
+          width={width / 4}
+          height={height / 4}
         />
         <span>Image Loading...</span>
       </div>
     );
   }
   return (
-    <div className="w-full h-lvh relative overflow-auto">
+    <div className="w-full h-full relative overflow-auto">
       <Image src={src} alt="404 not found" width={width} height={9999999} />
     </div>
   );

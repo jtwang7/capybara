@@ -49,10 +49,11 @@ const NoteDetail = forwardRef(
       notes: Note[];
       setNotes: Dispatch<SetStateAction<Note[]>>;
       onDelete?: (uid: string) => void;
+      onFocus?: () => void;
     },
     ref: any
   ) => {
-    const { notes, setNotes, onDelete } = props;
+    const { notes, setNotes, onDelete, onFocus } = props;
 
     const form = useForm<z.infer<typeof formSchema>>({
       resolver: zodResolver(formSchema), // resolver will validate formdata before submit
@@ -260,10 +261,10 @@ const NoteDetail = forwardRef(
               <Button
                 variant="outline"
                 className="flex-auto h-7 font-bold rounded-none rounded-r-md"
-                // onClick={() => {
-                //   configureRef.current.collapse();
-                //   setCornellMode(Mode.Edit);
-                // }}
+                type="button"
+                onClick={() => {
+                  onFocus?.();
+                }}
               >
                 Focus
               </Button>
