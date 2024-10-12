@@ -154,13 +154,15 @@ export default function CornellPage() {
         </Spin>
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={20} minSize={20} maxSize={20}>
-            <NoteList
-              notes={notes}
-              uid={currentNoteUid}
-              onUidChange={(uid) => {
-                gotoNote(uid, notes);
-              }}
-            />
+            <div className="h-[calc(100%-36px)] p-3 box-border">
+              <NoteList
+                notes={notes}
+                uid={currentNoteUid}
+                onUidChange={(uid) => {
+                  gotoNote(uid, notes);
+                }}
+              />
+            </div>
           </ResizablePanel>
           <ResizableHandle />
           {/* note detail */}

@@ -32,7 +32,7 @@ export default function NoteList(props: {
     );
   }
   return (
-    <div className="flex flex-col h-full items-center p-3 space-y-2">
+    <div className="flex flex-col items-center h-full space-y-2 overflow-auto">
       {notes.map((note) => (
         <Card
           key={note.uid}

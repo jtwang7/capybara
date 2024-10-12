@@ -19,9 +19,12 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - [ ] 笔记访问权限
 - [ ] summary & point
 - [ ] 笔记检索功能
+- [ ] 直接跳转原网页
+- [ ] tag 标签删除功能
 
 ### Bugs
 
+- [x] 笔记卡片栏不支持滚动
 - [ ] 新增笔记时，截屏没有自动切换
 - [ ] 切换笔记时，截屏没有过渡效果，直接从上一份笔记截屏切换到当前笔记截屏
 
