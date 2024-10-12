@@ -22,6 +22,7 @@ export async function urlParseAction({
   });
   await page.goto(url, {
     waitUntil: "networkidle0", // wait until the network is idle (page fully loaded)
+    timeout: 0, // no timeout
   });
 
   // article title
