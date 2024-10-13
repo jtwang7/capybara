@@ -1,6 +1,6 @@
 "use client";
 
-import { deleteNote, updateNote } from "@/actions/cornell-action";
+import { deleteNote, deleteTag, updateNote } from "@/actions/cornell-action";
 import TagsSelector from "@/components/tags-selector";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,9 +28,12 @@ import {
   Dispatch,
   SetStateAction,
   forwardRef,
+  useEffect,
   useImperativeHandle,
   useMemo,
+  useState,
 } from "react";
+import { flushSync } from "react-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -60,14 +63,15 @@ const NoteDetail = forwardRef(
       defaultValues: notes[0],
     });
 
-    const tagList = useMemo(() => {
+    const [tagList, setTagList] = useState<string[]>([]);
+    useEffect(() => {
       const list = notes.reduce<Set<string>>((store, note) => {
         note.tags?.forEach((tag) => {
           tag && store.add(tag);
         });
         return store;
       }, new Set<string>());
-      return Array.from(list);
+      setTagList(Array.from(list));
     }, [notes]);
 
     // expose form instance to parent component
@@ -112,7 +116,7 @@ const NoteDetail = forwardRef(
     };
 
     return (
-      <div className="flex flex-col h-full items-center p-3">
+      <div className="flex flex-col h-full items-center overflow-auto">
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
@@ -201,10 +205,17 @@ const NoteDetail = forwardRef(
                   <FormLabel className="font-semibold">Tags</FormLabel>
                   <FormControl>
                     <TagsSelector
+                      className="p-1"
                       tagList={tagList}
+                      onTagListChange={(tags) => {
+                        setTagList(tags);
+                      }}
                       tagValue={field.value}
                       onChange={(tags) => {
                         form.setValue("tags", tags);
+                      }}
+                      onDelete={async (tag) => {
+                        await deleteTag(notes, tag);
                       }}
                     />
                   </FormControl>

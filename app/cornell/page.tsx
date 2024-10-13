@@ -173,18 +173,20 @@ export default function CornellPage() {
             minSize={15}
             maxSize={25}
           >
-            <NoteDetail
-              notes={notes}
-              setNotes={setNotes}
-              ref={formRef}
-              onDelete={() => {
-                fetchNotes();
-              }}
-              onFocus={() => {
-                configureRef.current.collapse();
-                setCornellMode(Mode.Edit);
-              }}
-            />
+            <div className="h-[calc(100%-36px)] p-3 box-border">
+              <NoteDetail
+                notes={notes}
+                setNotes={setNotes}
+                ref={formRef}
+                onDelete={() => {
+                  fetchNotes();
+                }}
+                onFocus={() => {
+                  configureRef.current.collapse();
+                  setCornellMode(Mode.Edit);
+                }}
+              />
+            </div>
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize={60}>

@@ -13,9 +13,10 @@ export async function getNotes({
   pageNum?: number;
 }) {
   try {
-    const { rows } = await sql`SELECT * FROM cornell LIMIT ${pageNum} OFFSET ${
-      page * pageNum
-    }`;
+    const { rows } =
+      await sql`SELECT * FROM cornell ORDER BY id ASC LIMIT ${pageNum} OFFSET ${
+        page * pageNum
+      }`;
     return rows;
   } catch (error) {
     console.error(`Error fetching notes: ${error}`);
@@ -108,6 +109,30 @@ export async function updateNote({
     return true;
   } catch (error) {
     console.error(`Error updating note: ${error}`);
+    return false;
+  }
+}
+
+export async function deleteTag(notes: Note[], tag: string) {
+  try {
+    const targetNotes = notes
+      .filter((note) => note.tags?.includes(tag))
+      .map((note) => {
+        note.tags = note.tags?.filter((t) => t !== tag);
+        return note;
+      });
+    const result = await Promise.all(
+      targetNotes.map((note) => updateNote(note))
+    );
+    if (result.some((r) => !r)) {
+      const errorTarget = targetNotes[result.findIndex((r) => !r)];
+      throw new Error(
+        `Note(${errorTarget.title}) with tag(${tag}) delete failed`
+      );
+    }
+    return true;
+  } catch (error) {
+    console.error(`Error deleting tag: ${error}`);
     return false;
   }
 }

@@ -17,6 +17,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
+import clsx from "clsx";
 
 export default function TagsSelector(props: {
   defaultTagValue?: string[];
@@ -26,8 +27,10 @@ export default function TagsSelector(props: {
   tagList?: string[];
   onTagListChange?: (tags: string[]) => void;
   onSelect?: (tag: string) => void;
+  onDelete?: (tag: string) => void;
+  className?: string;
 }) {
-  const { onSelect } = props;
+  const { className, onSelect, onDelete } = props;
 
   const { toast } = useToast();
 
@@ -47,9 +50,6 @@ export default function TagsSelector(props: {
     !!hoverTimer.current && clearTimeout(hoverTimer.current);
     hoverTimer.current = null;
     notAllowDelete();
-  };
-  const deleteTag = (tag: string) => {
-    // TODO: 删除 tag 的逻辑
   };
 
   const [availableTagList, setAvailableTagList] = useControllableValue<
@@ -99,6 +99,12 @@ export default function TagsSelector(props: {
     }
   };
 
+  const deleteTag = (tag: string) => {
+    setTags((prev) => prev.filter((t) => t !== tag));
+    setAvailableTagList((prev) => prev.filter((t) => t !== tag));
+    onDelete?.(tag);
+  };
+
   useEffect(() => {
     if (edit && inputRef.current) {
       inputRef.current.focus();
@@ -106,7 +112,15 @@ export default function TagsSelector(props: {
   }, [edit]);
 
   return (
-    <div className="flex flex-wrap justify-start items-center">
+    <div
+      className={clsx(
+        "flex",
+        "flex-wrap",
+        "justify-start",
+        "items-center",
+        !!className && className
+      )}
+    >
       {availableTagList.map((tag) => (
         <Badge
           key={tag}
@@ -128,7 +142,14 @@ export default function TagsSelector(props: {
                   e.stopPropagation();
                 }}
               >
-                <Dialog>
+                <Dialog
+                  onOpenChange={(open) => {
+                    // 弹窗会导致 mouseLeave 监听失效，因此弹窗关闭时，手动取消 hover 态
+                    if (!open) {
+                      unHoverToCancelDelete();
+                    }
+                  }}
+                >
                   <DialogTrigger asChild>
                     <SquareX width={14} height={14} />
                   </DialogTrigger>
@@ -139,10 +160,10 @@ export default function TagsSelector(props: {
                         Make double check to your remove action here. Click
                         delete when you're confirmed.
                       </DialogDescription>
-                      <div>
-                        {/* TODO: 当前要删除的 tag */}
-                        {/* TODO: 删除 tag 影响的笔记数量以及具体笔记 */}
-                      </div>
+                      <p>
+                        <span>The tag that needs to be removed is</span>
+                        <Badge className="ml-2">{tag}</Badge>
+                      </p>
                     </DialogHeader>
                     <DialogFooter>
                       <Button
