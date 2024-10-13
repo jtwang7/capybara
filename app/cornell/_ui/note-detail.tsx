@@ -116,7 +116,7 @@ const NoteDetail = forwardRef(
     };
 
     return (
-      <div className="flex flex-col h-full items-center overflow-auto">
+      <div className="flex flex-col h-full items-center overflow-auto p-1">
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
@@ -205,7 +205,6 @@ const NoteDetail = forwardRef(
                   <FormLabel className="font-semibold">Tags</FormLabel>
                   <FormControl>
                     <TagsSelector
-                      className="p-1"
                       tagList={tagList}
                       onTagListChange={(tags) => {
                         setTagList(tags);

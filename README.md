@@ -22,6 +22,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - [ ] 笔记检索功能
 - [ ] 直接跳转原网页
 - [x] tag 标签删除功能
+- [ ] 笔记子链接 (相关知识拓展连接｜关联连接)
+- [ ] 卡片展示多种类排序
 
 ### Bugs
 
@@ -30,6 +32,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - [x] 新增笔记时，截屏没有自动切换
 - [x] 切换笔记时，截屏没有过渡效果，直接从上一份笔记截屏切换到当前笔记截屏
 - [x] 笔记数据集初次载入的顺序是随机的
+- [ ] 添加新笔记且存在滚动条时，滚动条不默认滚动到最底层
 
 ## Basic Info
 
