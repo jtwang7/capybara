@@ -63,7 +63,7 @@ const NoteDetail = forwardRef(
     const tagList = useMemo(() => {
       const list = notes.reduce<Set<string>>((store, note) => {
         note.tags?.forEach((tag) => {
-          store.add(tag);
+          tag && store.add(tag);
         });
         return store;
       }, new Set<string>());

@@ -25,6 +25,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ### Bugs
 
 - [x] 笔记卡片栏不支持滚动
+- [x] tag 为空时展示态异常 (空标签框)
+- [ ] tag 按回车保存时会同时触发笔记配置整体保存
 - [ ] 新增笔记时，截屏没有自动切换
 - [ ] 切换笔记时，截屏没有过渡效果，直接从上一份笔记截屏切换到当前笔记截屏
 
