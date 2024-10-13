@@ -15,9 +15,10 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### Features
 
-- [ ] 笔记删除功能
+- [x] 笔记删除功能
 - [ ] 笔记访问权限
-- [ ] summary & point
+- [ ] summary 功能
+- [x] point 功能
 - [ ] 笔记检索功能
 - [ ] 直接跳转原网页
 - [x] tag 标签删除功能
@@ -28,7 +29,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - [x] tag 为空时展示态异常 (空标签框)
 - [x] 新增笔记时，截屏没有自动切换
 - [x] 切换笔记时，截屏没有过渡效果，直接从上一份笔记截屏切换到当前笔记截屏
-- [ ] 笔记数据集初次载入的顺序是随机的
+- [x] 笔记数据集初次载入的顺序是随机的
 
 ## Basic Info
 
