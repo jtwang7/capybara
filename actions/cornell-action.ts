@@ -8,16 +8,23 @@ import { sql } from "@vercel/postgres";
 export async function getNotes({
   page = 0,
   pageNum = 20,
+  limit = false,
 }: {
   page?: number;
   pageNum?: number;
+  limit?: boolean;
 }) {
   try {
-    const { rows } =
-      await sql`SELECT * FROM cornell ORDER BY id ASC LIMIT ${pageNum} OFFSET ${
-        page * pageNum
-      }`;
-    return rows;
+    if (!limit) {
+      const { rows } = await sql`SELECT * FROM cornell ORDER BY id ASC`;
+      return rows;
+    } else {
+      const { rows } =
+        await sql`SELECT * FROM cornell ORDER BY id ASC LIMIT ${pageNum} OFFSET ${
+          page * pageNum
+        }`;
+      return rows;
+    }
   } catch (error) {
     console.error(`Error fetching notes: ${error}`);
     return [];

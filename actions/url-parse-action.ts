@@ -33,14 +33,14 @@ export async function urlParseAction({
   let iconUrl = await page
     .$eval("link[rel='icon']", (el) => el.href)
     .catch(() => {
-      return undefined;
+      return "";
     });
   if (!iconUrl) {
     // for google
     iconUrl = await page
       .$eval("meta[itemprop='image']", (el) => el.content)
       .catch(() => {
-        return undefined;
+        return "";
       });
   }
   if (iconUrl?.startsWith("/")) {

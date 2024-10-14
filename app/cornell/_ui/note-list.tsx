@@ -51,7 +51,7 @@ export default function NoteList(props: {
             {
               <div className="flex space-x-1">
                 <Image
-                  src={note.icon_url ?? "/paperclip.png"}
+                  src={note.icon_url || "/paperclip.png"}
                   width={20}
                   height={20}
                   className="p-1"
